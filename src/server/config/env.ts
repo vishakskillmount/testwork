@@ -14,9 +14,6 @@ function optional(name: string): string | undefined {
 }
 
 export const env = {
-  get mongodbUri() {
-    return required("MONGODB_URI");
-  },
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL");
   },

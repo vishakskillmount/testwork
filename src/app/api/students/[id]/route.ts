@@ -9,7 +9,7 @@ export async function PATCH(request: Request, context: StudentRouteContext) {
   return studentController.update(id, request);
 }
 
-export async function DELETE(request: Request, context: StudentRouteContext) {
+export async function DELETE(_request: Request, context: StudentRouteContext) {
   const { id } = await context.params;
-  return studentController.remove(id, request);
+  return studentController.remove(id);
 }

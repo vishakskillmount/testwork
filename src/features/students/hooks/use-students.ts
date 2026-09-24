@@ -2,30 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type {
-  CreateStudentInput,
-  Student,
-  StudentsBySource,
-} from "@/shared/types/student.types";
+import type { CreateStudentInput, Student } from "@/shared/types/student.types";
 import { studentApi } from "../api/student.api";
-
-const EMPTY_STUDENTS: StudentsBySource = { mongodb: [], supabase: [] };
 
 export type StudentNotice = {
   tone: "success" | "error";
   message: string;
 };
 
-function studentKey(student: Student) {
-  return `${student.source}-${student.id}`;
-}
-
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
 export function useStudents() {
-  const [students, setStudents] = useState<StudentsBySource>(EMPTY_STUDENTS);
+  const [students, setStudents] = useState<Student[]>([]);
   const [saving, setSaving] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +41,7 @@ export function useStudents() {
         await studentApi.create(input);
         setNotice({
           tone: "success",
-          message: "Student added to MongoDB and Supabase.",
+          message: "Student added.",
         });
         await refresh();
         return true;
@@ -70,16 +60,13 @@ export function useStudents() {
 
   const updateStudent = useCallback(
     async (student: Student, input: CreateStudentInput) => {
-      setPendingId(studentKey(student));
+      setPendingId(student.id);
 
       try {
-        await studentApi.update(student.id, {
-          ...input,
-          source: student.source,
-        });
+        await studentApi.update(student.id, input);
         setNotice({
           tone: "success",
-          message: `Updated ${student.name} in ${student.source}.`,
+          message: `Updated ${student.name}.`,
         });
         await refresh();
         return true;
@@ -98,13 +85,13 @@ export function useStudents() {
 
   const deleteStudent = useCallback(
     async (student: Student) => {
-      setPendingId(studentKey(student));
+      setPendingId(student.id);
 
       try {
-        await studentApi.remove(student.id, student.source);
+        await studentApi.remove(student.id);
         setNotice({
           tone: "success",
-          message: `Deleted ${student.name} from ${student.source}.`,
+          message: `Deleted ${student.name}.`,
         });
         await refresh();
         return true;

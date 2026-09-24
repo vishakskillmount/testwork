@@ -1,10 +1,7 @@
 import { API_ROUTES } from "@/shared/constants/api.constants";
-import type { StudentSource } from "@/shared/enums/student-source.enum";
 import type {
   CreateStudentInput,
-  CreatedStudents,
   Student,
-  StudentsBySource,
   UpdateStudentInput,
 } from "@/shared/types/student.types";
 
@@ -25,16 +22,18 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const studentApi = {
-  list() {
-    return request<StudentsBySource>(API_ROUTES.STUDENTS);
+  async list() {
+    const data = await request<{ students: Student[] }>(API_ROUTES.STUDENTS);
+    return data.students;
   },
 
-  create(input: CreateStudentInput) {
-    return request<CreatedStudents>(API_ROUTES.STUDENTS, {
+  async create(input: CreateStudentInput) {
+    const data = await request<{ student: Student }>(API_ROUTES.STUDENTS, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
+    return data.student;
   },
 
   update(id: string, input: UpdateStudentInput) {
@@ -45,8 +44,7 @@ export const studentApi = {
     });
   },
 
-  remove(id: string, source: StudentSource) {
-    const url = `${API_ROUTES.student(id)}?source=${encodeURIComponent(source)}`;
-    return request<void>(url, { method: "DELETE" });
+  remove(id: string) {
+    return request<void>(API_ROUTES.student(id), { method: "DELETE" });
   },
 };

@@ -1,8 +1,4 @@
-import type {
-  CreatedStudents,
-  Student,
-  StudentsBySource,
-} from "@/shared/types/student.types";
+import type { Student } from "@/shared/types/student.types";
 
 /**
  * Wire format returned by the students endpoints. It currently matches the
@@ -10,6 +6,10 @@ import type {
  */
 export type StudentResponseDto = Student;
 
-export type StudentListResponseDto = StudentsBySource;
+export type StudentListResponseDto = {
+  students: Student[];
+};
 
-export type CreateStudentResponseDto = CreatedStudents;
+export type CreateStudentResponseDto = {
+  student: Student;
+};

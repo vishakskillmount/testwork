@@ -2,23 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/server/http/api-error";
 
-const mongoStudentRepository = {
-  findAll: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  remove: vi.fn(),
-};
-
 const supabaseStudentRepository = {
   findAll: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
 };
-
-vi.mock("../repositories/student.mongo.repository", () => ({
-  mongoStudentRepository,
-}));
 
 vi.mock("../repositories/student.supabase.repository", () => ({
   supabaseStudentRepository,
@@ -32,62 +21,50 @@ const input = {
   course: "Next.js",
 };
 
+const student = {
+  id: "supabase-1",
+  ...input,
+  createdAt: "2026-09-22T00:00:00.000Z",
+};
+
+describe("studentService.list", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns students from Supabase", async () => {
+    supabaseStudentRepository.findAll.mockResolvedValue([student]);
+
+    await expect(studentService.list()).resolves.toEqual({
+      students: [student],
+    });
+  });
+});
+
 describe("studentService.create", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns both records when both writes succeed", async () => {
-    mongoStudentRepository.create.mockResolvedValue({
-      id: "mongo-1",
-      ...input,
-      createdAt: "2026-09-22T00:00:00.000Z",
-      source: "mongodb",
-    });
-    supabaseStudentRepository.create.mockResolvedValue({
-      id: "supabase-1",
-      ...input,
-      createdAt: "2026-09-22T00:00:00.000Z",
-      source: "supabase",
-    });
+  it("returns the Supabase student when the write succeeds", async () => {
+    supabaseStudentRepository.create.mockResolvedValue(student);
 
     const created = await studentService.create(input);
 
-    expect(created.mongodb.id).toBe("mongo-1");
-    expect(created.supabase.id).toBe("supabase-1");
-    expect(mongoStudentRepository.remove).not.toHaveBeenCalled();
+    expect(created.student.id).toBe("supabase-1");
+    expect(supabaseStudentRepository.create).toHaveBeenCalledWith(
+      input,
+      expect.any(Date)
+    );
   });
 
-  it("removes the MongoDB row when Supabase fails", async () => {
-    mongoStudentRepository.create.mockResolvedValue({
-      id: "mongo-1",
-      ...input,
-      createdAt: "2026-09-22T00:00:00.000Z",
-      source: "mongodb",
-    });
+  it("surfaces a Supabase error", async () => {
     supabaseStudentRepository.create.mockRejectedValue(
       ApiError.internal("Supabase denied this change.")
     );
-    mongoStudentRepository.remove.mockResolvedValue(undefined);
 
     await expect(studentService.create(input)).rejects.toThrow(
       "Supabase denied this change."
-    );
-    expect(mongoStudentRepository.remove).toHaveBeenCalledWith("mongo-1");
-  });
-
-  it("reports a split write when the MongoDB rollback also fails", async () => {
-    mongoStudentRepository.create.mockResolvedValue({
-      id: "mongo-1",
-      ...input,
-      createdAt: "2026-09-22T00:00:00.000Z",
-      source: "mongodb",
-    });
-    supabaseStudentRepository.create.mockRejectedValue(new Error("down"));
-    mongoStudentRepository.remove.mockRejectedValue(new Error("rollback down"));
-
-    await expect(studentService.create(input)).rejects.toThrow(
-      "could not be removed"
     );
   });
 });
@@ -97,20 +74,28 @@ describe("studentService.update", () => {
     vi.clearAllMocks();
   });
 
-  it("updates only the selected store", async () => {
-    supabaseStudentRepository.update.mockResolvedValue({
-      id: "supabase-1",
-      ...input,
-      createdAt: "2026-09-22T00:00:00.000Z",
-      source: "supabase",
-    });
+  it("updates the Supabase student", async () => {
+    supabaseStudentRepository.update.mockResolvedValue(student);
 
-    await studentService.update("supabase-1", "supabase", input);
+    await studentService.update("supabase-1", input);
 
     expect(supabaseStudentRepository.update).toHaveBeenCalledWith(
       "supabase-1",
       input
     );
-    expect(mongoStudentRepository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("studentService.remove", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("deletes the Supabase student", async () => {
+    supabaseStudentRepository.remove.mockResolvedValue(undefined);
+
+    await studentService.remove("supabase-1");
+
+    expect(supabaseStudentRepository.remove).toHaveBeenCalledWith("supabase-1");
   });
 });

@@ -2,7 +2,6 @@ import { ApiError, toErrorResponse } from "@/server/http/api-error";
 import { studentService } from "../service/student.service";
 import {
   parseCreateStudentDto,
-  parseStudentSource,
   parseUpdateStudentDto,
 } from "../validators/student.validation";
 
@@ -36,12 +35,8 @@ export const studentController = {
 
   async update(id: string, request: Request) {
     try {
-      const body = await readJsonBody(request);
-      const source = parseStudentSource(
-        (body as { source?: unknown }).source
-      );
-      const dto = parseUpdateStudentDto(body);
-      const student = await studentService.update(id, source, dto);
+      const dto = parseUpdateStudentDto(await readJsonBody(request));
+      const student = await studentService.update(id, dto);
 
       return Response.json({ student });
     } catch (error) {
@@ -49,13 +44,9 @@ export const studentController = {
     }
   },
 
-  async remove(id: string, request: Request) {
+  async remove(id: string) {
     try {
-      const source = parseStudentSource(
-        new URL(request.url).searchParams.get("source")
-      );
-
-      await studentService.remove(id, source);
+      await studentService.remove(id);
 
       return new Response(null, { status: 204 });
     } catch (error) {

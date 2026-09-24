@@ -34,9 +34,9 @@ export function StudentList({
         ) : (
           students.map((student) => (
             <StudentCard
-              key={`${student.source}-${student.id}`}
+              key={student.id}
               student={student}
-              pending={pendingId === `${student.source}-${student.id}`}
+              pending={pendingId === student.id}
               onUpdate={onUpdate}
               onDelete={onDelete}
             />

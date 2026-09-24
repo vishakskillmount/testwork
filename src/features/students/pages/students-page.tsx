@@ -40,26 +40,15 @@ export function StudentsPage() {
 
         <StudentForm saving={saving} onSubmit={addStudent} />
 
-        <div className="grid gap-10 md:grid-cols-2">
-          <StudentList
-            title="MongoDB Students"
-            students={students.mongodb}
-            pendingId={pendingId}
-            loading={loading}
-            loadError={loadError}
-            onUpdate={updateStudent}
-            onDelete={deleteStudent}
-          />
-          <StudentList
-            title="Supabase Students"
-            students={students.supabase}
-            pendingId={pendingId}
-            loading={loading}
-            loadError={loadError}
-            onUpdate={updateStudent}
-            onDelete={deleteStudent}
-          />
-        </div>
+        <StudentList
+          title="Students"
+          students={students}
+          pendingId={pendingId}
+          loading={loading}
+          loadError={loadError}
+          onUpdate={updateStudent}
+          onDelete={deleteStudent}
+        />
       </div>
     </div>
   );
