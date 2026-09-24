@@ -94,13 +94,6 @@ export function describeDifference(studentValue: string, correctValue: string): 
 export function normalizeCellText(value: string): string {
   return value
     .normalize("NFKC")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ")
-    .replace(/[\r\n\t]+/g, " ")
-    .replace(/[–—−]/g, "-")
-    .replace(/[⁄∕]/g, "/")
-    .replace(/\s*([=/,])\s*/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
 }

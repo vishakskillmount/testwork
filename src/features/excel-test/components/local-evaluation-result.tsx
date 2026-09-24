@@ -36,8 +36,8 @@ export function LocalEvaluationResultView({ result, saved }: LocalEvaluationResu
       </p>
       <h2 className="mt-2 text-3xl font-semibold text-slate-900">Comparison result</h2>
       <p className="mt-2 text-sm text-slate-600">
-        Click Wrong or Correct to open those cells. Compared {result.studentName} with{" "}
-        {result.correctName}.
+        Spaces and punctuation are ignored. Only letters and numbers are compared,
+        without case. Compared {result.studentName} with {result.correctName}.
       </p>
 
       <p

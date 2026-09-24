@@ -67,13 +67,14 @@ describe("evaluateWithoutAi", () => {
     expect(cellsEqualIgnoreCase("9", "8")).toBe(false);
   });
 
-  it("treats extra spaces and line breaks as the same answer", () => {
+  it("ignores spaces, punctuation, and letter case", () => {
     expect(
       cellsEqualIgnoreCase(
         "Being cash paid for  mo  to graphic\ninr 600",
         "Being cash paid for mo to graphic inr 600",
       ),
     ).toBe(true);
+    expect(cellsEqualIgnoreCase("Hello, World 1", "helloworld1")).toBe(true);
     expect(
       cellsEqualIgnoreCase(
         "Govt Charges = 350 , M-Post 15",
@@ -81,7 +82,7 @@ describe("evaluateWithoutAi", () => {
       ),
     ).toBe(false);
     expect(describeDifference("28333/36=69.6999", "28333/36=78.6999")).toContain(
-      "69.6999",
+      "696999",
     );
   });
 
