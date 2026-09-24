@@ -20,7 +20,7 @@ export async function readZipWorkbook(file: File): Promise<ExcelWorkbook> {
   for (const entry of entries) {
     const name = fileNameFromPath(entry.name);
     const bytes = await entry.async("uint8array");
-    const inner = new File([bytes], name, { type: mimeForName(name) });
+    const inner = new File([toArrayBuffer(bytes)], name, { type: mimeForName(name) });
     workbooks.push(
       isPdfFile(inner) ? await readPdfWorkbook(inner) : await readExcelWorkbook(inner),
     );
@@ -97,6 +97,12 @@ function uniqueSheetName(base: string, usedNames: Set<string>): string {
 
   usedNames.add(next);
   return next;
+}
+
+export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 
 function mimeForName(name: string): string {

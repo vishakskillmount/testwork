@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 import * as XLSX from "xlsx";
 
-import { isSupportedZipEntry, mergeWorkbooks, readZipWorkbook } from "./zip-reader";
+import {
+  isSupportedZipEntry,
+  mergeWorkbooks,
+  readZipWorkbook,
+  toArrayBuffer,
+} from "./zip-reader";
 
 function workbookBytes(sheets: Record<string, Array<Array<string | number>>>) {
   const workbook = XLSX.utils.book_new();
@@ -78,7 +83,7 @@ describe("ZIP assignment files", () => {
     );
 
     const packed = await zip.generateAsync({ type: "uint8array" });
-    const file = new File([packed], "student-answers.zip", {
+    const file = new File([toArrayBuffer(packed)], "student-answers.zip", {
       type: "application/zip",
     });
 
