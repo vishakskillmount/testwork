@@ -14,9 +14,12 @@ const ACCEPT = [
   ".xlsm",
   ".xlsb",
   ".pdf",
+  ".zip",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
 ].join(",");
 
 export function ExcelUploadCard({
@@ -37,7 +40,7 @@ export function ExcelUploadCard({
       className="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-400"
     >
       <p className="text-sm font-medium tracking-[0.16em] text-slate-500 uppercase">
-        Upload Excel or PDF
+        Upload Excel, PDF, or ZIP
       </p>
       <h2 className="mt-2 text-2xl font-semibold text-slate-900">{title}</h2>
       <p className="mt-2 text-sm text-slate-600">{description}</p>
@@ -56,7 +59,7 @@ export function ExcelUploadCard({
         <p className="mt-1 text-xs text-slate-500">
           {file
             ? `${formatBytes(file.size)} · click to replace`
-            : "Click to choose .xlsx, .xls, or .pdf"}
+            : "Click to choose .xlsx, .xls, or .pdf, or .zip"}
         </p>
       </div>
     </label>

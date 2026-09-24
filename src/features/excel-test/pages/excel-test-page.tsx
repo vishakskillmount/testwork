@@ -7,10 +7,16 @@ import { readAssignmentFile } from "@/lib/assignment/read-assignment-file";
 import { compareWorkbooks } from "@/lib/excel/excel-compare";
 import { toEvaluationPayload } from "@/lib/excel/evaluation-payload";
 import type { ExcelWorkbook, WorkbookComparison } from "@/lib/excel/excel.types";
+import {
+  evaluateWithoutAi,
+  type LocalEvaluationResult,
+} from "@/lib/excel/local-evaluation";
 import type { ExcelEvaluationResult } from "@/shared/types/excel-eval.types";
+import { saveAssignmentEvaluation } from "../api/assignment-eval.api";
 import { evaluateExcelAssignment } from "../api/excel-eval.api";
 import { EvaluationResult } from "../components/evaluation-result";
 import { ExcelUploadCard } from "../components/excel-upload-card";
+import { LocalEvaluationResultView } from "../components/local-evaluation-result";
 import { WorkbookComparisonView } from "../components/workbook-comparison";
 import { WorkbookInspector } from "../components/workbook-inspector";
 
@@ -21,13 +27,18 @@ export function ExcelTestPage() {
   const [correctWorkbook, setCorrectWorkbook] = useState<ExcelWorkbook | null>(null);
   const [comparison, setComparison] = useState<WorkbookComparison | null>(null);
   const [evaluation, setEvaluation] = useState<ExcelEvaluationResult | null>(null);
+  const [localEvaluation, setLocalEvaluation] = useState<LocalEvaluationResult | null>(null);
+  const [localSaved, setLocalSaved] = useState(false);
   const [view, setView] = useState<"comparison" | "student" | "correct">("comparison");
   const [extracting, setExtracting] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
+  const [evaluatingLocal, setEvaluatingLocal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canExtract = Boolean(studentFile && correctFile) && !extracting && !evaluating;
-  const canEvaluate = Boolean(comparison) && !extracting && !evaluating;
+  const busy = extracting || evaluating || evaluatingLocal;
+  const canExtract = Boolean(studentFile && correctFile) && !busy;
+  const canEvaluateLocal = Boolean(studentFile && correctFile) && !busy;
+  const canEvaluateAi = Boolean(comparison) && !busy;
 
   const handleStudentFileChange = (file: File | null) => {
     setStudentFile(file);
@@ -35,6 +46,8 @@ export function ExcelTestPage() {
     setCorrectWorkbook(null);
     setComparison(null);
     setEvaluation(null);
+    setLocalEvaluation(null);
+    setLocalSaved(false);
     setError(null);
   };
 
@@ -44,6 +57,8 @@ export function ExcelTestPage() {
     setCorrectWorkbook(null);
     setComparison(null);
     setEvaluation(null);
+    setLocalEvaluation(null);
+    setLocalSaved(false);
     setError(null);
   };
 
@@ -62,15 +77,20 @@ export function ExcelTestPage() {
         readAssignmentFile(correctFile),
       ]);
 
+      const nextComparison = compareWorkbooks(student, correct);
       setStudentWorkbook(student);
       setCorrectWorkbook(correct);
-      setComparison(compareWorkbooks(student, correct));
+      setComparison(nextComparison);
       setEvaluation(null);
+      setLocalEvaluation(null);
+      setLocalSaved(false);
       setView("comparison");
     } catch (extractError) {
       setStudentWorkbook(null);
       setCorrectWorkbook(null);
       setComparison(null);
+      setLocalEvaluation(null);
+      setLocalSaved(false);
       setError(
         extractError instanceof Error
           ? extractError.message
@@ -105,6 +125,46 @@ export function ExcelTestPage() {
     }
   };
 
+  const handleEvaluateWithoutAi = async () => {
+    if (!studentFile || !correctFile) {
+      setError("Upload both student and correct-answer files before evaluating.");
+      return;
+    }
+
+    setEvaluatingLocal(true);
+    setError(null);
+    setLocalSaved(false);
+
+    try {
+      let nextComparison = comparison;
+      if (!nextComparison || !studentWorkbook || !correctWorkbook) {
+        const [student, correct] = await Promise.all([
+          readAssignmentFile(studentFile),
+          readAssignmentFile(correctFile),
+        ]);
+        nextComparison = compareWorkbooks(student, correct);
+        setStudentWorkbook(student);
+        setCorrectWorkbook(correct);
+        setComparison(nextComparison);
+        setView("comparison");
+      }
+
+      const result = evaluateWithoutAi(nextComparison);
+      setLocalEvaluation(result);
+      await saveAssignmentEvaluation(result);
+      setLocalSaved(true);
+    } catch (evaluateError) {
+      setLocalSaved(false);
+      setError(
+        evaluateError instanceof Error
+          ? evaluateError.message
+          : "Could not evaluate or save the assignment.",
+      );
+    } finally {
+      setEvaluatingLocal(false);
+    }
+  };
+
   return (
     <div className="h-dvh overflow-y-auto bg-slate-100 text-slate-900">
       <div className="mx-auto max-w-7xl px-6 py-10 sm:px-10">
@@ -122,23 +182,23 @@ export function ExcelTestPage() {
             Excel Assignment Test
           </h1>
           <p className="mt-3 max-w-3xl text-slate-600">
-            Upload student and correct answers as Excel or PDF, compare the
-            extracted content, then send structured JSON to a free Groq model
-            for answer counts.
+            Upload student and correct answers as Excel, PDF, or ZIP, compare
+            cells locally without AI, then optionally send structured JSON to a
+            free Groq model.
           </p>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
           <ExcelUploadCard
             title="Student Answer"
-            description="Student answer as Excel or PDF."
+            description="Student answer as Excel, PDF, or a ZIP of those files."
             inputId="student-answer-upload"
             file={studentFile}
             onFileChange={handleStudentFileChange}
           />
           <ExcelUploadCard
             title="Correct Answer"
-            description="Correct answer as Excel or PDF."
+            description="Correct answer as Excel, PDF, or a ZIP of those files."
             inputId="correct-answer-upload"
             file={correctFile}
             onFileChange={handleCorrectFileChange}
@@ -157,8 +217,16 @@ export function ExcelTestPage() {
             </button>
             <button
               type="button"
+              onClick={handleEvaluateWithoutAi}
+              disabled={!canEvaluateLocal}
+              className="rounded-xl border border-slate-900 px-6 py-3 text-sm font-semibold text-slate-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+            >
+              {evaluatingLocal ? "Saving..." : "Evaluate without AI"}
+            </button>
+            <button
+              type="button"
               onClick={handleEvaluate}
-              disabled={!canEvaluate}
+              disabled={!canEvaluateAi}
               className="rounded-xl border border-slate-900 px-6 py-3 text-sm font-semibold text-slate-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
             >
               {evaluating ? "Evaluating..." : "Evaluate with AI"}
@@ -166,11 +234,11 @@ export function ExcelTestPage() {
           </div>
           {!studentFile || !correctFile ? (
             <p className="text-sm text-slate-500">
-              Select both files (Excel or PDF) to enable extraction.
+              Select both files (Excel, PDF, or ZIP) to extract or evaluate without AI.
             </p>
           ) : !comparison ? (
             <p className="text-sm text-slate-500">
-              Extract and compare the files first.
+              Evaluate without AI compares cells and saves the result to Supabase.
             </p>
           ) : null}
           {error ? (
@@ -179,6 +247,12 @@ export function ExcelTestPage() {
             </p>
           ) : null}
         </div>
+
+        {localEvaluation ? (
+          <div className="mt-10">
+            <LocalEvaluationResultView result={localEvaluation} saved={localSaved} />
+          </div>
+        ) : null}
 
         {evaluation ? (
           <div className="mt-10">
