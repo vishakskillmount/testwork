@@ -28,12 +28,20 @@ export function StudentsPage() {
             <h1 className="text-4xl font-bold tracking-tight">Student Management</h1>
             <p className="mt-2 text-slate-600">Add, update, and delete student records.</p>
           </div>
-          <Link
-            href="/excel-test"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
-          >
-            Excel Assignment Test
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/live"
+              className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Live Player
+            </Link>
+            <Link
+              href="/excel-test"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900"
+            >
+              Excel Assignment Test
+            </Link>
+          </div>
         </header>
 
         {notice ? <Notice tone={notice.tone} message={notice.message} /> : null}
